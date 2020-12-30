@@ -6,6 +6,8 @@ namespace AmazonReviewGenerator.Common.Models.Config
     {
         public string AmazonReviewDataDocId { get; set; }
         public string MarkovBlobContainerName { get; set; }
+        public int ReviewMinLength { get; set; }
+        public int ReviewMaxLength { get; set; }
         public ConnectionStrings ConnectionStrings { get; set; }
     }
 

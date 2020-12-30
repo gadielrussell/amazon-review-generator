@@ -5,7 +5,7 @@ namespace AmazonReviewGenerator.Services.Interfaces
 {
     public interface IReviewGeneratorService
     {
-        Task<ReviewLite> GenerateReview();
+        ReviewLite GenerateReview();
         Task TrainModel();
     }
 }

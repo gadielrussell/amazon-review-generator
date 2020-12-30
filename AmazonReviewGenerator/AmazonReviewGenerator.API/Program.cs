@@ -27,10 +27,8 @@ namespace AmazonReviewGenerator.API
                                              if (string.IsNullOrEmpty(appConfigConnStr))
                                                  throw new Exception("\"APP_CONFIG_CONNECTION\" environment variable not set.");
 
-                                             var creds = new DefaultAzureCredential();
                                              options.Connect(appConfigConnStr)
                                                     .Select(KeyFilter.Any, "ARG")
-                                                    .ConfigureKeyVault(kv => kv.SetCredential(creds))
                                                     .ConfigureRefresh(refresh =>
                                                     {
                                                         refresh.Register("RefreshTrigger", "ARG", refreshAll: true)

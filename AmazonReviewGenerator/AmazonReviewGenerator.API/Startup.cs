@@ -30,7 +30,7 @@ namespace AmazonReviewGenerator.API
             #endregion
 
             #region MARKOV CHAIN SERVICES
-            services.AddMarkov(appSettings).ConfigureAwait(false);
+            services.AddMarkov(appSettings).Wait();
             #endregion
 
             services.AddControllers();

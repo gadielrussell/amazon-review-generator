@@ -10,7 +10,6 @@ namespace AmazonReviewGenerator.API.Controllers
     [Route("[controller]")]
     public class GenerateController : Controller
     {
-
         private readonly IReviewGeneratorService _reviewGenerator;
 
         public GenerateController(IReviewGeneratorService reviewGenerator)
@@ -23,9 +22,9 @@ namespace AmazonReviewGenerator.API.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public async Task<IActionResult> GenerateReview()
+        public IActionResult GenerateReview()
         {
-            var review = await _reviewGenerator.GenerateReview();
+            var review = _reviewGenerator.GenerateReview();
             return Ok(review);
         }
     }
