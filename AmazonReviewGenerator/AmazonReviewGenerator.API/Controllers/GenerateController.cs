@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AmazonReviewGenerator.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,18 +10,23 @@ namespace AmazonReviewGenerator.API.Controllers
     [Route("[controller]")]
     public class GenerateController : Controller
     {
-        public GenerateController()
-        {
 
+        private readonly IReviewGeneratorService _reviewGenerator;
+
+        public GenerateController(IReviewGeneratorService reviewGenerator)
+        {
+            _reviewGenerator = reviewGenerator;
         }
 
+        /// <summary>
+        /// Returns a generated review.
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public async Task<IActionResult> GenerateReview()
         {
-
-
-
-            return Ok();
+            var review = await _reviewGenerator.GenerateReview();
+            return Ok(review);
         }
     }
 }

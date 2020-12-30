@@ -1,16 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using AmazonReviewGenerator.API.Helpers;
+using AmazonReviewGenerator.Common.Models.Config;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace AmazonReviewGenerator.API
 {
@@ -23,16 +19,26 @@ namespace AmazonReviewGenerator.API
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            #region APP SETTINGS
+            services.ConfigureAppSettings(Configuration, out AppSettings appSettings);
+            #endregion
+
+            #region AZURE TABLE STORAGE
+            services.AddAzureTableStorage(appSettings);
+            #endregion
+
+            #region MARKOV CHAIN SERVICES
+            services.AddMarkov(appSettings).ConfigureAwait(false);
+            #endregion
+
             services.AddControllers();
             services.AddCors();
             services.AddMvc(o => o.EnableEndpointRouting = false)
                     .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
