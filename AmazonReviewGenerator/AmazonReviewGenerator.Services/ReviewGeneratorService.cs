@@ -4,9 +4,7 @@ using AmazonReviewGenerator.Services.Interfaces;
 using Azure.Storage.Blobs;
 using Markov;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -57,6 +55,9 @@ namespace AmazonReviewGenerator.Services
             var response = await dataSet.DownloadAsync();
             var download = response.Value?.Content;
 
+            if (download is null)
+                throw new Exception("No content found when downloading Training data. Check \"AmazonReviewDataDocId\" and Blob upload.");
+
             using (var sr = new StreamReader(download, Encoding.UTF8))
             {
                 var rawData = sr.ReadToEnd();
@@ -67,13 +68,13 @@ namespace AmazonReviewGenerator.Services
                     var review = JsonConvert.DeserializeObject<ReviewLite>(rData);
                     var reviewTextNotAvailable = string.IsNullOrEmpty(review.ReviewText);
 
-                    if (reviewTextNotAvailable) 
+                    if (reviewTextNotAvailable)
                         continue;
 
                     var reviewWords = review.ReviewText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     _markovChain.Add(reviewWords, 1);
                 }
-            }         
+            }
         }
 
         /// <summary>
