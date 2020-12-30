@@ -38,8 +38,10 @@ namespace AmazonReviewGenerator.Services
         public ReviewLite GenerateReview()
         {
             var reviewWordLenth = _randomizer.Next(_appSettings.ReviewMinLength, _appSettings.ReviewMaxLength + 1);
-            var reviewText = string.Join(' ', _markovChain.Chain(reviewWordLenth));
-            var review = new ReviewLite(reviewText);
+            var origReviewText = string.Join(' ', _markovChain.Chain(reviewWordLenth));
+            var formattedReviewText = CleanUpReviewText(origReviewText);
+
+            var review = new ReviewLite(formattedReviewText);
 
             return review;
         }
@@ -72,6 +74,39 @@ namespace AmazonReviewGenerator.Services
                     _markovChain.Add(reviewWords, 1);
                 }
             }         
+        }
+
+        /// <summary>
+        /// Attempts to clean up generated review text.
+        /// </summary>
+        /// <param name="originalReviewText"></param>
+        /// <returns></returns>
+        private string CleanUpReviewText(string originalReviewText)
+        {
+            var formattedReviewTextSb = new StringBuilder();
+
+            char[] twoPrevChar = new char[2] { '\0', '\0' };
+            Func<bool> capitalizeCurrentChar = () => twoPrevChar[0] == '.' && twoPrevChar[1] == ' ';
+            Action<char> updatePrevCharacterArr = (char c) =>
+            {
+                twoPrevChar[0] = twoPrevChar[1];
+                twoPrevChar[1] = c;
+            };
+
+            for (int i = 0; i < originalReviewText.Length; i++)
+            {
+                var c = originalReviewText[i];
+
+                if (i == 0 || capitalizeCurrentChar())
+                {
+                    c = c.ToString().ToUpperInvariant()[0];
+                }
+
+                formattedReviewTextSb.Append(c);
+                updatePrevCharacterArr(c);
+            }
+
+            return formattedReviewTextSb.ToString();
         }
     }
 }
