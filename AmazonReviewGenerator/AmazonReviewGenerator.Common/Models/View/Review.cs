@@ -1,4 +1,6 @@
-﻿namespace AmazonReviewGenerator.Common.Models.View
+﻿using Microsoft.ML.Data;
+
+namespace AmazonReviewGenerator.Common.Models.View
 {
     public class Review : ReviewLite
     {

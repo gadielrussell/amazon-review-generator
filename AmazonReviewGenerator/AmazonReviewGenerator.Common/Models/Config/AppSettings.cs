@@ -8,6 +8,7 @@ namespace AmazonReviewGenerator.Common.Models.Config
         public string MarkovBlobContainerName { get; set; }
         public int ReviewMinLength { get; set; }
         public int ReviewMaxLength { get; set; }
+        public bool UseSentimentAnalysis { get; set; }
         public ConnectionStrings ConnectionStrings { get; set; }
     }
 
