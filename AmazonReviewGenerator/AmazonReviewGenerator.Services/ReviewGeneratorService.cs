@@ -1,10 +1,13 @@
 ﻿using AmazonReviewGenerator.Common.Models.Config;
+using AmazonReviewGenerator.Common.Models.Domain;
 using AmazonReviewGenerator.Common.Models.View;
 using AmazonReviewGenerator.Services.Interfaces;
 using Azure.Storage.Blobs;
 using Markov;
+using Microsoft.ML;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +20,7 @@ namespace AmazonReviewGenerator.Services
         private readonly BlobContainerClient _blobClient;
         private readonly AppSettings _appSettings;
         private readonly Random _randomizer;
+        private PredictionEngine<ReviewLite, ReviewPrediction> _predictionEngine;
 
         public ReviewGeneratorService(
             MarkovChain<string> markovChain,
@@ -41,15 +45,19 @@ namespace AmazonReviewGenerator.Services
 
             var review = new ReviewLite(formattedReviewText);
 
+            if (_appSettings.UseSentimentAnalysis)
+                review.PredictOverallRatingBasedOnReviewText(_predictionEngine);
+
             return review;
         }
 
         /// <summary>
-        /// Trains the Markov model with a set of review data.
+        /// Trains the Markov and Sentiment Prediction model with a set of review data.
         /// </summary>
         /// <returns></returns>
-        public async Task TrainModel()
+        public async Task TrainModels()
         {
+            var reviews = new List<ReviewLite>();
             await _blobClient.CreateIfNotExistsAsync();
             var dataSet = _blobClient.GetBlobClient(_appSettings.AmazonReviewDataDocId);
             var response = await dataSet.DownloadAsync();
@@ -70,11 +78,62 @@ namespace AmazonReviewGenerator.Services
 
                     if (reviewTextNotAvailable)
                         continue;
-
+                    reviews.Add(review);
                     var reviewWords = review.ReviewText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     _markovChain.Add(reviewWords, 1);
                 }
             }
+
+            BuildSentimentPredictionEngine(reviews);
+        }
+
+        /// <summary>
+        /// Builds and trains a review rating prediction engine based on the provided set of reviews.
+        /// </summary>
+        /// <param name="reviews"></param>
+        public void BuildSentimentPredictionEngine(List<ReviewLite> reviews)
+        {
+            var context = new MLContext(seed: 0);
+
+            #region DATA PIPELINE: TRANSFORMATION & ALGORITHM
+            var dataProcessPipeline = context.Transforms.Text.FeaturizeText(outputColumnName: "ReviewText", inputColumnName: nameof(ReviewLite.ReviewText))
+                                             .Append(context.Transforms.Conversion.MapValueToKey(outputColumnName: "Label", inputColumnName: nameof(ReviewLite.Overall)));
+
+            var trainer = context.MulticlassClassification.Trainers.SdcaMaximumEntropy(labelColumnName: "Label", featureColumnName: "ReviewText");
+            var trainingPipeline = dataProcessPipeline.Append(trainer).Append(context.Transforms.Conversion.MapKeyToValue("PredictedLabel"));
+            #endregion
+
+            #region LOAD AND TRAIN MODEL
+            var dataView = context.Data.LoadFromEnumerable(reviews);
+            var trainedModel = trainingPipeline.Fit(dataView);
+            #endregion
+
+            #region LOCAL TESTING
+            //var predictions = trainedModel.Transform(dataView);
+
+            //var schema = dataView.Schema;
+            //var preview = predictions.Preview();
+            //var data = context.Data.CreateEnumerable<ReviewPrediction>(predictions, true);
+            //var metrics = context.MulticlassClassification.Evaluate(predictions, "Label", "Score");
+            //var dir = $"{AppDomain.CurrentDomain.BaseDirectory}/AmazonReviewGenerator.Services/ML/ARGReviewModel.zip";
+
+            //if (!Directory.Exists(dir))
+            //    Directory.CreateDirectory(dir);
+            //context.Model.Save(trainedModel, dataView.Schema, dir);
+            #endregion
+
+            _predictionEngine = context.Model.CreatePredictionEngine<ReviewLite, ReviewPrediction>(trainedModel);
+        }
+
+        /// <summary>
+        /// Predicts an overall rating based on the text of a review.
+        /// </summary>
+        /// <param name="review"></param>
+        /// <returns></returns>
+        public void UpdateOverallRatingWithPrediction(ReviewLite review)
+        {
+            var prediction = _predictionEngine.Predict(review);
+            review.Overall = prediction.PredictedOverall;
         }
 
         /// <summary>

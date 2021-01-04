@@ -46,7 +46,7 @@ namespace AmazonReviewGenerator.API.Helpers
             var blobClient = sp.GetService<BlobContainerClient>();
             var rgs = new ReviewGeneratorService(markovChain, blobClient, appSettings);
 
-            await rgs.TrainModel();
+            await rgs.TrainModels();
 
             services.AddSingleton<IReviewGeneratorService>(rgs);
             return services;
